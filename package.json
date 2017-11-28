@@ -1,0 +1,52 @@
+{
+  "name": "okanjo-app-server-session",
+  "version": "1.0.0",
+  "description": "Persistent server-side session state stored in Redis",
+  "main": "SessionPlugin.js",
+  "scripts": {
+    "clean": "rm -rf .nyc_output coverage",
+    "test": "node_modules/.bin/mocha -R spec test",
+    "cover": "node_modules/.bin/nyc node_modules/mocha/bin/_mocha --exit",
+    "lint": "node_modules/.bin/eslint .",
+    "report": "npm run cover && npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okanjo/okanjo-app-server-session.git"
+  },
+  "keywords": [
+    "Okanjo",
+    "OkanjoApp",
+    "HAPI",
+    "Catbox",
+    "Redis",
+    "Cookie"
+  ],
+  "author": "Okanjo Partners Inc",
+  "license": "MIT",
+  "devDependencies": {
+    "async": "^2.6.0",
+    "eslint": "^4.10.0",
+    "joi": "^9.2.0",
+    "mocha": "^4.0.1",
+    "needle": "^2.0.1",
+    "nyc": "^11.3.0",
+    "okanjo-app": "^1.0.2",
+    "okanjo-app-server": "^1.0.0",
+    "should": "^13.1.3"
+  },
+  "peerDependencies": {
+    "okanjo-app": ">= 1",
+    "okanjo-app-server": ">= 1"
+  },
+  "dependencies": {
+    "base-id": "^0.1.1"
+  },
+  "nyc": {
+    "reporter": [
+      "text-summary",
+      "html",
+      "lcovonly"
+    ]
+  }
+}
