@@ -294,7 +294,7 @@ app.connectToServices(() => {
 A runnable version of this application can be found in [docs/example-app](https://github.com/okanjo/okanjo-app-server-session/tree/master/docs/example-app).
 
 
-# `SessionPlugin(server, sessionConfig, cache, callback)`
+## `SessionPlugin(server, sessionConfig, cache, callback)`
 
 The plugin exports a function which installs the plugin.
 
@@ -320,7 +320,7 @@ The plugin exports a function which installs the plugin.
 * `cache` – The HAPI cache instance to use for storing session data. Defaults to in-memory cache with configuration: `{ segment: 'sessions', expiresIn: TWO_WEEKS }`
 * `callback(err)` – Function that is fired when setup is completed. If `err` is present, something went wrong.
     
-# `request.session` 
+## `request.session` 
 This plugin adds a `session` object to each HAPI request, so it is available in other plugins or route handlers.
 
 * `request.session.sid` – The string ID of the session or `null` if not defined
