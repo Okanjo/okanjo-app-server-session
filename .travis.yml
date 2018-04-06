@@ -1,9 +1,27 @@
 sudo: true
 language: node_js
 node_js:
-  - "lts/*"
-  - "6"
+- lts/*
+- '6'
 script:
-  - npm run report
+- npm run report
 after_script:
-  - "npm install coveralls@2.10.0 && cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
+- npm install coveralls@2.10.0 && cat ./coverage/lcov.info | ./node_modules/.bin/coveralls
+before_deploy:
+- mkdir ./deploy && cp ./README.md ./deploy
+deploy:
+  provider: s3
+  access_key_id:
+    secure: N189AFV2ZeDlomift+z5/3Sh+cVSI2BQD1cO3t6cJrm0RJg9AgCm0Fi7ozVPxZJ9IrQk1MDEm9kOHL20eKCqCfBn+xR9CTz4TxkN1RDsebmlou6l17oh9f64ErzSxqdtOqUcDx4iKVxZGLu4tR3ZB8yAydK4hECm2fsohpY+dP/ZMPmZIxUkj+hg3eWGEuVZIEiqyRivS8/ZNEefp8MH8Q0x1vzho9Q3jcVwNiDaoGBztM9RQwBTUBXenkFT50NSZBuiPZMcyA66fX8FOcA7CYUSdiKWG+fBeYLxtXpK7w5m6xS777KfXD0sHeBdRT2G9ZSbwplhERFfeEGa6+bFy17wtSJfqiTBD8XTiFmu33Zjhzk3oY0W0DshJ4hB/L1JAXZonu8B2kEIZgXQwbqJvDQcKpRE3kYg54sOe3SWlpLg91XrXSUEp5xWhUbnLljidnkZzvhLdmrxEyqwIF5hAuuISyC+ynlFpk5Ijzo3umAMQDA4le+QpKyJLHupYf8pYD68TuPPPPJrnl0O4d6DdDWQ1ZW3IkXDKCQODsQdrhfHiSESLSFNvNn/B6MlQD8kzw8YpcGP/W5nQt+lVHqUEV7iIKH8eBqe1Z2plCXSJcCfaDXXJ9TgrOJQu/tPD2O6hzyzG76xZXQpWx1QzhShY9PtIpMYuL/owOorbejAyUg=
+  secret_access_key:
+    secure: fH2SPKfmxHYRpDA5MkqIbKkdfzmD/Tf/I5bDiFfV3wIH+OXIgwTmqsKi81rKeSSZbXPZxDrsO3IU8pj2Ey1LEoHOi9xXfO1pqfk1h0EuxUbQS6Tm3mG6mICIhxyXbpYwdyTF+M/74L0GHGqMrKOPTKHVYOCn/+bpu974vAaCQh6StttDYotO6VtXblQ5Q26hYgHFqp0TqfhEdhfODA2qp3orFB8Mr/O7TpXbFogHcGvWsRc3WJ32TsU8txBxmDPyudRfo8gb1eCkiIwTiUnECmAE6tIMAznQsdtb+sSIuTHEtSYS0FA41gEvj2vSSQKARZWlMxCg3RThQqdM8FQTfBme2QPn3/jng2ixAxXwG52f9ZWXTkEvyrTh5inudW0jDUW8bgdd2O/8rwe4ACyE2TPjtzEgKZY+sMoiyovUDeJCrcd52V4W+iiTljrMtg/7RR/Vbbxq/em3YNoVeiMNxgXiC9UZD+iyIcCIpOTR209koyzAyl/4DJNjvwtnl8a21s49XNxxWO5zD2F7qm8KXVqZp7Xqp0jbKeZoA3QldLb/xsXP690/Zyxea79AyicqYXNgixxSRaC8HNcjQRogsVdFMP61mp1UpllSEYa/7VLwLqLIgTUGmHa0ytwbkP2NPLgLGwsQxmBOz57juEape0rqBr8Wt0MHafJfrVuLHmU=
+  bucket: okanjo-docs
+  skip_cleanup: true
+  upload-dir: okanjo-app-server-session
+  acl: public_read
+  detect_encoding: true
+  default_text_charset: utf-8
+  local_dir: deploy
+  on:
+    branch: master
+    repo: Okanjo/okanjo-app-server-session
