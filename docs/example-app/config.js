@@ -8,18 +8,19 @@ module.exports = {
         hapiServerOptions: {
             port: 5555,
 
-            //// Uncomment this section if you want to store your session data in redis
-            //// Useful for live environments
+            // Uncomment this section if you want to store your session data in redis
+            // Useful for live environments
             // cache: [
-            //         {
-            //             name: 'myRedisCache',
-            //             engine: require('catbox-redis'),
+            //     {
+            //         name: 'myRedisCache',
+            //         engine: new (require('catbox-redis'))({
             //             host: '127.0.0.1',
             //             port: 6379,
             //             database: 0,
             //             partition: 'my-app-cache'
-            //         }
-            //     ]
+            //         }),
+            //     }
+            // ]
         },
         routePath: Path.join(__dirname, 'routes'),
     },

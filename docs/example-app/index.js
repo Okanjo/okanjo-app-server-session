@@ -21,7 +21,7 @@ app.connectToServices(async () => {
                 // cache = this.hapi.cache({
                 //     cache: 'myRedisCache',
                 //     segment: 'mySessions',
-                //     expiresIn: TWO_WEEKS
+                //     expiresIn: TWO_WEEKS,
                 // });
 
                 await SessionPlugin.register(this, app.config.sessionAuth, cache);
