@@ -32,6 +32,71 @@ Note: requires
  
 > Note: Use okanjo-app-server-session@^1.x for Hapi 16 and below. 
 
+
+## `SessionPlugin.SessionCookiePlugin`
+
+The complete Hapi-compatible plugin. Can be used if you don't wish OkanjoServer at all.
+
+## `SessionPlugin.register(server, [sessionConfig, [cache, [callback]]])`
+
+The plugin exports a function which installs the plugin.
+
+* `server` – The OkanjoServer instance to bind to
+* `sessionConfig` – The configuration for this plugin. Extension of [hapi-auth-cookie](https://github.com/hapijs/hapi-auth-cookie) scheme config.
+    - `cookie` - the cookie name. Defaults to `'sid'`.
+    - `ttl` - sets the cookie expires time in milliseconds. Defaults to single browser session (ends
+      when browser closes). Required when `keepAlive` is `true`.
+    - `domain` - sets the cookie Domain value. Defaults to none.
+    - `path` - sets the cookie path value. Defaults to `/`.
+    - `clearInvalid` - if `true`, any authentication cookie that fails validation will be marked as
+      expired in the response and cleared. Defaults to `false`.
+    - `keepAlive` - if `true`, automatically sets the session cookie after validation to extend the
+      current session for a new `ttl` duration. Defaults to `false`.
+    - `isSameSite` - if `false` omitted. Other options `Strict` or `Lax`. Defaults to `Strict`.
+    - `isSecure` - if `false`, the cookie is allowed to be transmitted over insecure connections which
+      exposes it to attacks. Defaults to `true`.
+    - `isHttpOnly` - if `false`, the cookie will not include the 'HttpOnly' flag. Defaults to `true`.
+    - `redirectTo` - optional login URI or function `function(request)` that returns a URI to redirect unauthenticated requests to. Note that it will only
+      trigger when the authentication mode is `'required'`. To enable or disable redirections for a specific route,
+      set the route `plugins` config (`{ options: { plugins: { 'hapi-auth-cookie': { redirectTo: false } } } }`).
+      Defaults to no redirection.
+    - `appendNext` - if `redirectTo` is `true`, can be a boolean, string, or object. Defaults to `false`.
+        - if set to `true`, a string, or an object, appends the current request path to the query component
+          of the `redirectTo` URI
+        - set to a string value or set the `name` property in an object to define the parameter name.
+          defaults to `'next'`
+        - set the `raw` property of the object to `true` to determine the current request path based on
+          the raw node.js request object received from the HTTP server callback instead of the processed
+          hapi request object
+    - `async validateFunc` - an optional session validation function used to validate the credentials on each request. Used to verify that the internal session state is still valid
+      (e.g. user account still exists). The function has the signature `function(request, sessionState)`
+      where:
+        - `request` - is the Hapi request object of the request which is being authenticated.
+        - `sessionState` - is the session object cached on the server.
+    
+      Must return an object that contains:
+        - `valid` - `true` if the content of the session is valid, otherwise `false`.
+        - `error` – Optional error response to return. Defaults to `Boom.unauthorized()`
+    - `requestDecoratorName` - *USE WITH CAUTION* an optional name to use with decorating the `request` object.  Defaults to `'session'`.  Using multiple decorator names for separate authentication strategies could allow a developer to call the methods for the wrong strategy.  Potentially resulting in unintended authorized access.
+    - `cache` – The HAPI cache instance to use for storing session data. Defaults to in-memory cache with configuration: `{ segment: 'sessions', expiresIn: TWO_WEEKS }`
+    - `report` – Optional error reporting handler with signature `(message, error, data)`. Called if cache operations fail. 
+* `cache` – Optional HAPI cache policy to use for storing session data. Defaults to in-memory cache with configuration: `{ segment: 'sessions', expiresIn: TWO_WEEKS }`
+* `callback(err)` – Optional function that is fired when setup is completed. If `err` is present, something went wrong.
+
+    
+## `request.session` 
+This plugin adds a `session` object to each HAPI request, so it is available in other plugins or route handlers.
+
+* `request.session.sid` – The string ID of the session or `null` if not defined
+* `request.session.data` – The data stored in the session or `{}` if not loaded
+* `request.session.loaded` – Whether the session was loaded yet or not, depending on where in the HAPI lifecycle you are
+* `async request.session.start(sessionState, [callback])` – Starts a new session using the given data. Returns a promise or accepts a callback.
+  * `sessionState` – The data to store in the session 
+  * `callback(err)` – Optional, function to fire when session has been started
+* `async request.session.destroy([callback])` – Terminates the active session. Returns a promise or accepts a callback.
+  * `callback(err)` – Optional, function to fire when session has been started 
+
+
 ## Example Usage
 
 Here's an example app that demonstrates using several features of the module.
@@ -290,69 +355,6 @@ app.connectToServices(async () => {
 ```
 
 A runnable version of this application can be found in [docs/example-app](https://github.com/okanjo/okanjo-app-server-session/tree/master/docs/example-app).
-
-## `SessionPlugin.SessionCookiePlugin`
-
-The complete Hapi-compatible plugin. Can be used if you don't wish OkanjoServer at all.
-
-## `SessionPlugin.register(server, [sessionConfig, [cache, [callback]]])`
-
-The plugin exports a function which installs the plugin.
-
-* `server` – The OkanjoServer instance to bind to
-* `sessionConfig` – The configuration for this plugin. Extension of [hapi-auth-cookie](https://github.com/hapijs/hapi-auth-cookie) scheme config.
-    - `cookie` - the cookie name. Defaults to `'sid'`.
-    - `ttl` - sets the cookie expires time in milliseconds. Defaults to single browser session (ends
-      when browser closes). Required when `keepAlive` is `true`.
-    - `domain` - sets the cookie Domain value. Defaults to none.
-    - `path` - sets the cookie path value. Defaults to `/`.
-    - `clearInvalid` - if `true`, any authentication cookie that fails validation will be marked as
-      expired in the response and cleared. Defaults to `false`.
-    - `keepAlive` - if `true`, automatically sets the session cookie after validation to extend the
-      current session for a new `ttl` duration. Defaults to `false`.
-    - `isSameSite` - if `false` omitted. Other options `Strict` or `Lax`. Defaults to `Strict`.
-    - `isSecure` - if `false`, the cookie is allowed to be transmitted over insecure connections which
-      exposes it to attacks. Defaults to `true`.
-    - `isHttpOnly` - if `false`, the cookie will not include the 'HttpOnly' flag. Defaults to `true`.
-    - `redirectTo` - optional login URI or function `function(request)` that returns a URI to redirect unauthenticated requests to. Note that it will only
-      trigger when the authentication mode is `'required'`. To enable or disable redirections for a specific route,
-      set the route `plugins` config (`{ options: { plugins: { 'hapi-auth-cookie': { redirectTo: false } } } }`).
-      Defaults to no redirection.
-    - `appendNext` - if `redirectTo` is `true`, can be a boolean, string, or object. Defaults to `false`.
-        - if set to `true`, a string, or an object, appends the current request path to the query component
-          of the `redirectTo` URI
-        - set to a string value or set the `name` property in an object to define the parameter name.
-          defaults to `'next'`
-        - set the `raw` property of the object to `true` to determine the current request path based on
-          the raw node.js request object received from the HTTP server callback instead of the processed
-          hapi request object
-    - `async validateFunc` - an optional session validation function used to validate the credentials on each request. Used to verify that the internal session state is still valid
-      (e.g. user account still exists). The function has the signature `function(request, sessionState)`
-      where:
-        - `request` - is the Hapi request object of the request which is being authenticated.
-        - `sessionState` - is the session object cached on the server.
-    
-      Must return an object that contains:
-        - `valid` - `true` if the content of the session is valid, otherwise `false`.
-        - `error` – Optional error response to return. Defaults to `Boom.unauthorized()`
-    - `requestDecoratorName` - *USE WITH CAUTION* an optional name to use with decorating the `request` object.  Defaults to `'session'`.  Using multiple decorator names for separate authentication strategies could allow a developer to call the methods for the wrong strategy.  Potentially resulting in unintended authorized access.
-    - `cache` – The HAPI cache instance to use for storing session data. Defaults to in-memory cache with configuration: `{ segment: 'sessions', expiresIn: TWO_WEEKS }`
-    - `report` – Optional error reporting handler with signature `(message, error, data)`. Called if cache operations fail. 
-* `cache` – Optional HAPI cache policy to use for storing session data. Defaults to in-memory cache with configuration: `{ segment: 'sessions', expiresIn: TWO_WEEKS }`
-* `callback(err)` – Optional function that is fired when setup is completed. If `err` is present, something went wrong.
-
-    
-## `request.session` 
-This plugin adds a `session` object to each HAPI request, so it is available in other plugins or route handlers.
-
-* `request.session.sid` – The string ID of the session or `null` if not defined
-* `request.session.data` – The data stored in the session or `{}` if not loaded
-* `request.session.loaded` – Whether the session was loaded yet or not, depending on where in the HAPI lifecycle you are
-* `async request.session.start(sessionState, [callback])` – Starts a new session using the given data. Returns a promise or accepts a callback.
-  * `sessionState` – The data to store in the session 
-  * `callback(err)` – Optional, function to fire when session has been started
-* `async request.session.destroy([callback])` – Terminates the active session. Returns a promise or accepts a callback.
-  * `callback(err)` – Optional, function to fire when session has been started 
 
 ## Extending and Contributing 
 
