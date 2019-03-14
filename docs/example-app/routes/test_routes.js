@@ -4,16 +4,15 @@ const Joi = require('joi');
 
 module.exports = function() {
     const server = this;
-    const app = server.app;
 
     // Home page, requires you to be logged in to view
     server.hapi.route({
         method: 'GET',
         path: '/',
-        handler: (request, reply) => {
+        handler: (/*request, h*/) => {
 
             //noinspection HtmlUnknownTarget
-            reply('YOU ARE AUTHENTICATED. <a href="/data">view session contents</a> or <a href="/logout">logout</a>?');
+            return 'YOU ARE AUTHENTICATED. <a href="/data">view session contents</a> or <a href="/logout">logout</a>?';
 
         },
         config: {
@@ -26,9 +25,9 @@ module.exports = function() {
     server.hapi.route({
         method: 'GET',
         path: '/data',
-        handler: (request, reply) => {
+        handler: (request/*, h*/) => {
 
-            reply(`<code>${JSON.stringify(request.session.data, null, '  ')}</code> <a href="/modify">make modification</a> or <a href="/">go back home</a>`);
+            return `<code>${JSON.stringify(request.session.data, null, '  ')}</code> <a href="/modify">make modification</a> or <a href="/">go back home</a>`;
 
         },
         config: {
@@ -41,12 +40,12 @@ module.exports = function() {
     server.hapi.route({
         method: 'GET',
         path: '/modify',
-        handler: (request, reply) => {
+        handler: (request, h) => {
 
+            // Change the value (saved automatically)
             request.session.data.things = Math.random();
 
-            reply.redirect('/data');
-
+            return h.redirect('/data');
         },
         config: {
             auth: 'session'
@@ -58,19 +57,19 @@ module.exports = function() {
     server.hapi.route({
         method: 'GET',
         path: '/login',
-        handler: (request, reply) => {
+        handler: (request, h) => {
 
             // If authenticated, go home
             if (request.auth.isAuthenticated) {
                 if (request.query.next) {
-                    return reply.redirect(request.query.next);
+                    return h.redirect(request.query.next);
                 } else {
-                    return reply.redirect('/');
+                    return h.redirect('/');
                 }
             }
 
             //noinspection HtmlUnknownTarget
-            reply(`YOU ARE NOT AUTHENTICATED. Go <a href="/">home</a> (hint, you'll bounce back here) or <a href="/login/start?${request.query.next ? 'next=' + encodeURIComponent(request.query.next) : ''}">authenticate?</a>`);
+            return `YOU ARE NOT AUTHENTICATED. Go <a href="/">home</a> (hint, you'll bounce back here) or <a href="/login/start?${request.query.next ? 'next=' + encodeURIComponent(request.query.next) : ''}">authenticate?</a>`;
         },
         config: {
             auth: { mode: 'try', strategies: ['session'] },
@@ -93,13 +92,14 @@ module.exports = function() {
     server.hapi.route({
         method: 'GET',
         path: '/login/start',
-        handler: (request, reply) => {
+        handler: async (request, h) => {
 
             if (request.auth.isAuthenticated) {
+                // already authenticated, don't clobber the existing session
                 if (request.query.next) {
-                    return reply.redirect(request.query.next);
+                    return h.redirect(request.query.next);
                 } else {
-                    return reply.redirect('/');
+                    return h.redirect('/');
                 }
             } else {
 
@@ -115,18 +115,15 @@ module.exports = function() {
                     }
                 };
 
-                request.session.start(exampleSessionRes, function(err) {
-                    if (err) {
-                        console.error('FAILED TO SAVE SESSION TO CACHE!', err);
-                        reply(app.response.badImplementation(err))
-                    } else {
-                        if (request.query.next) {
-                            return reply.redirect(request.query.next);
-                        } else {
-                            return reply.redirect('/');
-                        }
-                    }
-                });
+                // start the session
+                await request.session.start(exampleSessionRes);
+
+                // return to where they ought to go
+                if (request.query.next) {
+                    return h.redirect(request.query.next);
+                } else {
+                    return h.redirect('/');
+                }
             }
 
         },
@@ -146,15 +143,13 @@ module.exports = function() {
     server.hapi.route({
         method: 'GET',
         path: '/logout',
-        handler: (request, reply) => {
+        handler: async (request, h) => {
 
-            request.session.destroy((err) => {
-                if (err) {
-                    app.report('Failed to destroy session', err, { session: request.session });
-                }
-                reply.redirect('/login');
-            });
+            // terminate the session
+            await request.session.destroy();
 
+            // return to login
+            return h.redirect('/login');
         },
         config: {
             auth: { mode: 'try', strategies: ['session'] },

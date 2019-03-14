@@ -8,11 +8,11 @@ const SessionPlugin = require('../../SessionPlugin');
 const config = require('./config');
 const app = new OkanjoApp(config);
 
-app.connectToServices(() => {
+app.connectToServices(async () => {
 
     const options = {
         extensions: [
-            function(next) {
+            async function() {
 
                 let cache = null;
 
@@ -24,19 +24,15 @@ app.connectToServices(() => {
                 //     expiresIn: TWO_WEEKS
                 // });
 
-                SessionPlugin(this, app.config.serverAuth, cache, next);
+                await SessionPlugin.register(this, app.config.sessionAuth, cache);
             }
         ]
     };
 
-    const server = new OkanjoServer(app, app.config.webServer, options, (err) => {
-        if (err) throw err;
+    const server = new OkanjoServer(app, app.config.webServer, options);
 
-        server.start((err) => {
-            if (err) throw err;
-            console.log('Visit this URL in a browser: %s', server.hapi.info.uri);
-        });
+    await server.start();
 
-    });
+    console.log('Visit this URL in a browser: %s', server.hapi.info.uri);
 
 });
