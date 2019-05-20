@@ -697,7 +697,7 @@ describe('Session Module', function() {
 
     describe('SessionCookePlugin', () => {
 
-        const testLoginLogout = async (server, cookieName = 'sid') => {
+        const testLoginLogout = async (server, cookieName = 'sid', cookieSid = null) => {
             const routeBase = 'http://localhost:' + server.hapi.info.port;
 
             let res = await Needle('get', `${routeBase}/login/start`);
@@ -707,6 +707,10 @@ describe('Session Module', function() {
             res.cookies[cookieName].should.be.a.String().and.not.empty();
 
             const loginCookies = res.cookies;
+
+            if (cookieSid) {
+                loginCookies[cookieName].should.be.exactly(cookieSid);
+            }
 
             res = await Needle('get', `${routeBase}/orgs`, { cookies: loginCookies });
             res.should.be.an.Object();
@@ -725,6 +729,7 @@ describe('Session Module', function() {
             // The cookie value should be empty
             //should(res.cookies[cookieName]).be.a.String().and.not.be.ok(); // needle 0.x
             should(res.cookies[cookieName]).be.exactly(undefined);
+
         };
 
         it('can be registered without the helper', async () => {
@@ -883,6 +888,116 @@ describe('Session Module', function() {
 
                         const start = Util.promisify(request.session.start.bind(request.session));
                         await start(exampleSessionRes);
+
+                        if (request.query.next) {
+                            return h.redirect(request.query.next);
+                        } else {
+                            return h.redirect('/');
+                        }
+                    }
+
+                },
+                config: {
+                    auth: { mode: 'try', strategies: ['session'] },
+                    plugins: { 'okanjo-session-cookie': { redirectTo: false } },
+                    validate: {
+                        query: {
+                            next: Joi.string().optional()
+                        }
+                    }
+                }
+            });
+
+            server.hapi.route({
+                method: 'GET',
+                path: '/logout',
+                handler: async (request, h) => {
+
+                    const destroy = Util.promisify(request.session.destroy.bind(request.session));
+                    await destroy();
+                    return h.redirect('/login');
+
+                },
+                config: {
+                    auth: { mode: 'try', strategies: ['session'] },
+                    plugins: { 'okanjo-session-cookie': { redirectTo: false } }
+                }
+            });
+
+            await server.start();
+            await testLoginLogout(server);
+            await server.stop();
+        });
+
+        it('start w/ id/destroy/save can work with callbacks', async () => {
+            const sid = 'SESSION_SID';
+            const app = new OkanjoApp({
+                webServer: {},
+                sessionAuth: {
+                    isSecure: false,
+                    redirectTo: '/login',
+                    appendNext: true,
+                    keepAlive: true
+                }
+            });
+            const server = new OkanjoWebServer(app, {});
+            await server.init();
+
+            await server.hapi.cache.provision({ provider: require('catbox-memory'), name: 'custom_session_cache' });
+            const cache = server.hapi.cache({
+                cache: 'custom_session_cache',
+                segment: 'sessions',
+                expiresIn: 3600
+            });
+
+            await OkanjoServerSessionPlugin.register(server, app.config.sessionAuth, cache);
+
+            server.hapi.route({
+                method: 'GET',
+                path: '/orgs',
+                handler: async (request/*, h*/) => {
+
+                    const save = Util.promisify(request.session.save.bind(request.session));
+                    await save();
+
+                    //noinspection HtmlUnknownTarget
+                    return 'THIS IS ORGANIZATION. <a href="/">home</a> or <a href="/logout">logout</a>?';
+
+                },
+                config: {
+                    auth: 'session'
+                }
+            });
+
+            server.hapi.route({
+                method: 'GET',
+                path: '/login/start',
+                handler: async (request, h) => {
+
+                    if (request.auth.isAuthenticated) {
+                        if (request.query.next) {
+                            return h.redirect(request.query.next);
+                        } else {
+                            return h.redirect('/');
+                        }
+                    } else {
+
+                        // This is the example res.data from an SDK login request
+                        const exampleSessionRes = {
+                            account: {
+                                id: "ac_whatever",
+                                email: "whatever@whatever.whatever"
+                            },
+                            session: {
+                                id: "ses_whatever",
+                                expiry: "2020-01-01T00:00:00-06:00"
+                            }
+                        };
+
+                        const start = Util.promisify(request.session.startWithId.bind(request.session));
+                        await start(sid, exampleSessionRes);
+
+                        request.session.sid.should.be.exactly(sid);
 
                         if (request.query.next) {
                             return h.redirect(request.query.next);

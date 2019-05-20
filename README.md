@@ -93,6 +93,10 @@ This plugin adds a `session` object to each HAPI request, so it is available in 
 * `async request.session.start(sessionState, [callback])` – Starts a new session using the given data. Returns a promise or accepts a callback.
   * `sessionState` – The data to store in the session 
   * `callback(err)` – Optional, function to fire when session has been started
+* `async request.session.startWithId(sid, sessionState, [callback])` – Starts a new session using the given session id and data. Returns a promise or accepts a callback.
+  * `sid` – The session id to use. This is the cookie value. Only use this if you wish to use your own values instead of randomly generating one. 
+  * `sessionState` – The data to store in the session 
+  * `callback(err)` – Optional, function to fire when session has been started
 * `async request.session.destroy([callback])` – Terminates the active session. Returns a promise or accepts a callback.
   * `callback(err)` – Optional, function to fire when session has been started 
 

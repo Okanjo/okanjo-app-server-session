@@ -72,9 +72,27 @@ internals.Session = class {
     }
 
     // noinspection JSUnusedGlobalSymbols
+    /**
+     * Starts a new session with the given session payload
+     * @param context
+     * @param callback
+     * @returns {Promise<any>}
+     */
     start(context, callback) {
+        return this.startWithId(internals.generateSessionId(), context, callback);
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Starts a new session using the given identifier and payload
+     * @param sid
+     * @param context
+     * @param callback
+     * @returns {Promise<any>}
+     */
+    startWithId(sid, context, callback) {
         return new Promise(async (resolve, reject) => {
-            this.sid = internals.generateSessionId();
+            this.sid = sid;
             this.data = context;
             this.loaded = true;
 
@@ -94,6 +112,11 @@ internals.Session = class {
         });
     }
 
+    /**
+     * Ends the current session
+     * @param callback
+     * @returns {Promise<any>}
+     */
     destroy(callback) {
         return new Promise(async (resolve, reject) => {
 
@@ -121,6 +144,10 @@ internals.Session = class {
     }
 
     // noinspection JSUnusedGlobalSymbols
+    /**
+     * Loads the session from cache
+     * @returns {Promise<void>}
+     */
     async load() {
         if (!this.loaded) {
             try {
@@ -133,6 +160,11 @@ internals.Session = class {
         }
     }
 
+    /**
+     * Save the session to the cache
+     * @param callback
+     * @returns {Promise<any>}
+     */
     save(callback) {
         return new Promise(async (resolve, reject) => {
             if (this.loaded) {
