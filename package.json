@@ -34,12 +34,12 @@
     "mocha": "^6.0.2",
     "needle": "^2.2.4",
     "nyc": "^13.3.0",
-    "okanjo-app": "^1.0.2",
-    "okanjo-app-server": "^2.0.1",
+    "okanjo-app": "^2.1.0",
+    "okanjo-app-server": "^2.0.2",
     "should": "^13.2.3"
   },
   "dependencies": {
-    "base-id": "^2.0.0",
+    "base-id": "^2.2.0",
     "boom": "^7.3.0",
     "bounce": "^1.2.3",
     "hoek": "^6.1.2"
