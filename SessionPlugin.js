@@ -11,7 +11,7 @@ exports.SessionCookiePlugin = require('./SessionCookiePlugin');
  * @return {Promise<any>}
  */
 exports.register = (server, options, cache, callback) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
         // Take the cache however you want to give it
         options = options || {};
@@ -20,18 +20,21 @@ exports.register = (server, options, cache, callback) => {
             options.cache = cache;
         }
 
-        // Register the plugin
-        try {
-            await server.hapi.register({
-                plugin: exports.SessionCookiePlugin,
-                options,
-            });
-        } catch(err) {
-            if (callback) callback(err);
-            return reject(err);
-        }
+        const done = () => {
+            if (callback) callback();
+            resolve();
+        };
 
-        if (callback) callback();
-        resolve();
+        // Register the plugin
+        server.hapi.register({
+            plugin: exports.SessionCookiePlugin,
+            options,
+        })
+            .then(() => done())
+            .catch(err => {
+                if (callback) callback(err);
+                return reject(err);
+            })
+        ;
     });
 };

@@ -92,24 +92,26 @@ internals.Session = class {
      * @returns {Promise<any>}
      */
     startWithId(sid, context, callback) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise( (resolve, reject) => {
             this.sid = sid;
             this.data = context;
             this.loaded = true;
 
-            try {
-                await this.save();
-            } catch(err) /* istanbul ignore next */ {
-                this.settings.report('Failed to start session', err, { sid: this.sid });
-                if (callback) callback(err);
-                return reject(err);
-            }
+            this.save()
+                .then(() => {
+                    // Set the sid cookie
+                    this.h.state(this.settings.cookie, this.sid);
 
-            // Set the sid cookie
-            this.h.state(this.settings.cookie, this.sid);
+                    if (callback) callback();
+                    resolve();
+                })
+                .catch(/* istanbul ignore next */ err => {
+                    this.settings.report('Failed to start session', err, { sid: this.sid });
+                    if (callback) callback(err);
+                    return reject(err);
+                })
+            ;
 
-            if (callback) callback();
-            resolve();
         });
     }
 
@@ -119,28 +121,35 @@ internals.Session = class {
      * @returns {Promise<any>}
      */
     destroy(callback) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise( (resolve, reject) => {
 
             // Purge the session from existence
             this.h.unstate(this.settings.cookie);
 
+            const done = () => {
+                if (callback) callback();
+                resolve();
+            };
+
             // Only drop the sid if the sid is real
             if (this.sid) {
-                try {
-                    await this.settings.cache.drop(this.sid);
-                } catch(err) /* istanbul ignore next */ {
-                    this.settings.report('Failed to remove session from cache', err, { sid: this.sid });
-                    if (callback) callback(err);
-                    return reject(err)
-                }
+                this.settings.cache.drop(this.sid)
+                    .then(() => {
+                        this.sid = null;
+                        this.loaded = false;
+                        this.data = {};
+                        done();
+                    })
+                    .catch(/* istanbul ignore next */ err => {
+                        this.settings.report('Failed to remove session from cache', err, { sid: this.sid });
+                        if (callback) callback(err);
+                        return reject(err)
+                    })
+                ;
 
-                this.sid = null;
-                this.loaded = false;
-                this.data = {};
+            } else {
+                done();
             }
-
-            if (callback) callback();
-            resolve();
         });
     }
 
@@ -167,21 +176,27 @@ internals.Session = class {
      * @returns {Promise<any>}
      */
     save(callback) {
-        return new Promise(async (resolve, reject) => {
-            if (this.loaded) {
-                try {
-                    // TODO - save the session state changes only if dirty
-                    await this.settings.cache.set(this.sid, this.data, 0);
-                    if (callback) callback();
-                    return resolve();
-                } catch (err) /* istanbul ignore next */ {
-                    this.settings.report('Failed to update session after response', err, { data: this.data });
-                    if (callback) callback(err);
-                    return reject(err);
-                }
-            } else {
+        return new Promise((resolve, reject) => {
+
+            const done = () => {
                 if (callback) callback();
                 return resolve();
+            };
+
+            if (this.loaded) {
+
+                this.settings.cache.set(this.sid, this.data, 0)
+                    .then(() => {
+                        done();
+                    })
+                    .catch(/* istanbul ignore next */ err => {
+                        this.settings.report('Failed to update session after response', err, { data: this.data });
+                        if (callback) callback(err);
+                        return reject(err);
+                    })
+                ;
+            } else {
+                done();
             }
         });
     }
