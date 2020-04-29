@@ -1,6 +1,6 @@
 {
   "name": "okanjo-app-server-session",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Persistent server-side session state stored in Redis",
   "main": "SessionPlugin.js",
   "scripts": {

@@ -49,6 +49,7 @@ internals.schema = Joi.object({
     validateFunc: Joi.func(),
     requestDecoratorName: Joi.string().default('session'),
     ignoreIfDecorated: Joi.boolean().default(true),
+    skipCookieState: Joi.boolean().default(false),
 
     cache: Joi.object().allow(null).default(null),  // session state cache
     report: Joi.func().default(() => {}),           // error reporting interface
@@ -222,10 +223,12 @@ internals.implementation = (server, options) => {
         settings.appendNext = settings.appendNext.name || 'next';
     }
 
-    server.state(settings.cookie, cookieOptions);
+    // Setup the cookie, but skip if asked to do so (e.g. multiple session auth strategies that use the same cookie)
+    if (!settings.skipCookieState) {
+        server.state(settings.cookie, cookieOptions);
+    }
 
     const decoration = (request) => {
-
         return new internals.Session(request, settings);
     };
 

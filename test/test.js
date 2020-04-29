@@ -11,7 +11,7 @@ const Util = require('util');
 
 describe('Session Module', function() {
 
-    function bindRoutes(server) {
+    function bindRoutes(server, credentials=null) {
         server.hapi.route({
             method: 'GET',
             path: '/',
@@ -110,7 +110,7 @@ describe('Session Module', function() {
                 } else {
 
                     // This is the example res.data from an SDK login request
-                    const exampleSessionRes = {
+                    const exampleSessionRes = credentials || {
                         account: {
                             id: "ac_whatever",
                             email: "whatever@whatever.whatever"
@@ -154,6 +154,37 @@ describe('Session Module', function() {
             config: {
                 auth: { mode: 'try', strategies: ['session'] },
                 plugins: { 'okanjo-session-cookie': { redirectTo: false } }
+            }
+        });
+
+        server.hapi.route({
+            method: 'GET',
+            path: '/mfa',
+            handler: (/*request, h*/) => {
+
+                //noinspection HtmlUnknownTarget
+                return 'YOU ARE MFA AUTHENTICATE. <a href="/logout">logout</a>?';
+
+            },
+            config: {
+                auth: 'session',
+                plugins: { 'okanjo-session-cookie': { requireMFA: true } }
+            }
+        });
+
+        server.hapi.route({
+            method: 'GET',
+            path: '/mfa/set',
+            handler: (request/*, h*/) => {
+
+                request.session.data.mfaAuthenticated = true;
+
+                //noinspection HtmlUnknownTarget
+                return 'YOU ARE MFA AUTHENTICATE. <a href="/logout">logout</a>?';
+
+            },
+            config: {
+                auth: 'session'
             }
         });
     }
@@ -1311,6 +1342,239 @@ describe('Session Module', function() {
             res.headers.location.should.be.exactly('/login?next=%2Forgs');
 
             mode = 0;
+
+            res = await Needle('get', `${routeBase}/logout`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(302);
+            res.headers.location.should.equal('/login');
+
+            // Make sure the server told us to kill our cookie
+            res.headers['set-cookie'][0].should.match(/Max-Age=0/);
+
+            // The cookie value should be empty
+            //should(res.cookies[cookieName]).be.a.String().and.not.be.ok(); // needle 0.x
+            should(res.cookies[cookieName]).be.exactly(undefined);
+
+            await server.stop();
+        });
+
+        it('should handle mfa use cases', async () => {
+            const app = new OkanjoApp({
+                webServer: {},
+                sessionAuth: {
+                    isSecure: false,
+                    redirectTo: false,
+                    appendNext: true,
+                    keepAlive: true,
+                    validateFunc: (request, sessionState) => {
+                        // console.log('validate request!', { sessionState, settings: request.route.settings.plugins['okanjo-session-cookie'] })
+                        const settings = request.route.settings.plugins['okanjo-session-cookie'];
+                        if (settings && settings.requireMFA) {
+                            if (sessionState.mfaAuthenticated) {
+                                // MFA required and session is validated
+                                return {
+                                    valid: true,
+                                    error: null
+                                };
+                            } else {
+                                // MFA required and session not yet validated
+                                return {
+                                    valid: false,
+                                    error: Boom.unauthorized('MFA validation required.', 'session_cookie')
+                                }
+                            }
+                        } else {
+                            // MFA not required
+                            return {
+                                valid: true,
+                                error: null
+                            }
+                        }
+                    }
+                }
+            });
+            const server = new OkanjoWebServer(app, {});
+            await server.init();
+
+            // await server.hapi.cache.provision({ provider: require('catbox-memory'), name: 'custom_session_cache' });
+            // const cache = server.hapi.cache({
+            //     cache: 'custom_session_cache',
+            //     segment: 'sessions',
+            //     expiresIn: 3600
+            // });
+
+            await OkanjoServerSessionPlugin.register(server, app.config.sessionAuth);
+            bindRoutes(server);
+
+            await server.start();
+
+            const cookieName = 'sid', cookieSid = null;
+            const routeBase = 'http://localhost:' + server.hapi.info.port;
+
+            let res = await Needle('get', `${routeBase}/login/start`);
+            res.should.be.an.Object();
+            res.statusCode.should.equal(302);
+            res.headers.location.should.equal('/');
+            res.cookies[cookieName].should.be.a.String().and.not.empty();
+
+            const loginCookies = res.cookies;
+
+            // noinspection PointlessBooleanExpressionJS
+            if (cookieSid) {
+                loginCookies[cookieName].should.be.exactly(cookieSid);
+            }
+
+            // hitting the mfa route will be denied since we don't have the flag set
+            res = await Needle('get', `${routeBase}/mfa`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(401);
+            res.body.message.should.match(/MFA/);
+            // console.log(res.body)
+
+            // set the mfa flag on the session
+            res = await Needle('get', `${routeBase}/mfa/set`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(200);
+            res.cookies.should.deepEqual(loginCookies); // The sids should match
+
+            // hitting the mfa route now that the flag is set will be successful
+            res = await Needle('get', `${routeBase}/mfa`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(200);
+            res.body.should.match(/YOU ARE MFA AUTHENTICATE/);
+            res.cookies.should.deepEqual(loginCookies); // The sids should match
+
+            res = await Needle('get', `${routeBase}/logout`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(302);
+            res.headers.location.should.equal('/login');
+
+            // Make sure the server told us to kill our cookie
+            res.headers['set-cookie'][0].should.match(/Max-Age=0/);
+
+            // The cookie value should be empty
+            //should(res.cookies[cookieName]).be.a.String().and.not.be.ok(); // needle 0.x
+            should(res.cookies[cookieName]).be.exactly(undefined);
+
+            await server.stop();
+        });
+
+        it('can be registered multiple times with different strategies', async () => {
+            const app = new OkanjoApp({
+                webServer: {},
+                sessionAuth: {
+                    isSecure: false,
+                    redirectTo: false,
+                    appendNext: true,
+                    keepAlive: true,
+                }
+            });
+            const server = new OkanjoWebServer(app, {});
+            await server.init();
+
+            await OkanjoServerSessionPlugin.register(server, app.config.sessionAuth);
+
+            // Duplicate use of the cookie but different strategy
+            server.hapi.auth.strategy('session_flag', 'session_cookie', {
+                ...app.config.sessionAuth,
+                skipCookieState: true,
+                validateFunc: (request, sessionState) => {
+
+                    // console.log('VALIDATE:', sessionState)
+
+                    // Check flag
+                    if (sessionState.account.has_flag) {
+                        // Present
+                        return {
+                            valid: true,
+                            error: null
+                        };
+                    }
+
+                    // Not present
+                    return {
+                        valid: false,
+                        error: Boom.unauthorized('You do not have permission to perform this operation')
+                    };
+                }
+            });
+
+            bindRoutes(server, {
+                account: {
+                    id: "ac_whatever",
+                    email: "whatever@whatever.whatever",
+                    has_flag: true
+                },
+                session: {
+                    id: "ses_whatever",
+                    expiry: "2020-01-01T00:00:00-06:00"
+                }
+            });
+
+            server.hapi.route({
+                method: 'GET',
+                path: '/has-flag',
+                handler: (/*request, h*/) => {
+
+                    //noinspection HtmlUnknownTarget
+                    return 'YOU ARE AUTHENTICATE FLAG. <a href="/logout">logout</a>?';
+
+                },
+                config: {
+                    auth: 'session_flag'
+                }
+            });
+
+            server.hapi.route({
+                method: 'POST',
+                path: '/remove-flag',
+                handler: (request/*, h*/) => {
+
+                    //noinspection HtmlUnknownTarget
+                    request.session.data.account.has_flag = false;
+
+                    return 'OK';
+                },
+                config: {
+                    auth: 'session_flag'
+                }
+            });
+
+            await server.start();
+
+            const cookieName = 'sid', cookieSid = null;
+            const routeBase = 'http://localhost:' + server.hapi.info.port;
+
+            let res = await Needle('get', `${routeBase}/login/start`);
+            res.should.be.an.Object();
+            res.statusCode.should.equal(302);
+            res.headers.location.should.equal('/');
+            res.cookies[cookieName].should.be.a.String().and.not.empty();
+
+            const loginCookies = res.cookies;
+
+            // noinspection PointlessBooleanExpressionJS
+            if (cookieSid) {
+                loginCookies[cookieName].should.be.exactly(cookieSid);
+            }
+
+            res = await Needle('get', `${routeBase}/has-flag`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            res.statusCode.should.equal(200);
+            res.body.should.match(/AUTHENTICATE FLAG/);
+            // console.log(res.cookies, loginCookies);
+
+            res = await Needle('post', `${routeBase}/remove-flag`, {}, { cookies: loginCookies });
+            res.should.be.an.Object();
+            // console.log(res.statusCode, res.body);
+            res.statusCode.should.equal(200);
+            res.body.should.match(/OK/);
+
+            res = await Needle('get', `${routeBase}/has-flag`, { cookies: loginCookies });
+            res.should.be.an.Object();
+            // console.log(res.statusCode, res.body);
+            res.statusCode.should.equal(401);
+            res.body.message.should.match(/permission to perform/);
 
             res = await Needle('get', `${routeBase}/logout`, { cookies: loginCookies });
             res.should.be.an.Object();
