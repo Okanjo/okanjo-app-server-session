@@ -1,6 +1,6 @@
 {
   "name": "okanjo-app-server-session",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Persistent server-side session state stored in Redis",
   "main": "SessionPlugin.js",
   "scripts": {
@@ -30,15 +30,15 @@
     "catbox-redis": "^4.2.4",
     "eslint": "^6.8.0",
     "joi": "^14.3.1",
-    "mocha": "^7.1.2",
-    "needle": "^2.2.4",
-    "nyc": "^15.0.1",
+    "mocha": "^7.2.0",
+    "needle": "^2.6.0",
+    "nyc": "^15.1.0",
     "okanjo-app": "^2.1.0",
-    "okanjo-app-server": "^2.0.2",
+    "okanjo-app-server": "^2.1.0",
     "should": "^13.2.3"
   },
   "dependencies": {
-    "base-id": "^2.2.0",
+    "base-id": "^3.0.0",
     "boom": "^7.3.0",
     "bounce": "^1.2.3",
     "hoek": "^6.1.3"
