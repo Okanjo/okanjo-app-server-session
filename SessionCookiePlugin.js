@@ -1,8 +1,8 @@
 'use strict';
 
-const Boom = require('boom');
-const Bounce = require('bounce');
-const Hoek = require('hoek');
+const Boom = require('@hapi/boom');
+const Bounce = require('@hapi/bounce');
+const Hoek = require('@hapi/hoek');
 const Joi = require('joi');
 const baseId = require('base-id');
 
@@ -52,7 +52,7 @@ internals.schema = Joi.object({
     skipCookieState: Joi.boolean().default(false),
 
     cache: Joi.object().allow(null).default(null),  // session state cache
-    report: Joi.func().default(() => {}),           // error reporting interface
+    report: Joi.func().default(() => () => {}),           // error reporting interface
 }).required();
 
 internals.generateSessionId = (prefix) => baseId.base62.generateToken(Math.round(Math.random() * 10) + 40, prefix || "sid_");
@@ -206,7 +206,7 @@ internals.Session = class {
 
 internals.implementation = (server, options) => {
 
-    const results = Joi.validate(options, internals.schema);
+    const results = internals.schema.validate(options);
     Hoek.assert(!results.error, results.error);
 
     const settings = results.value;

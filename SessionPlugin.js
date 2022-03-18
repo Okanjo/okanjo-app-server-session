@@ -7,10 +7,9 @@ exports.SessionCookiePlugin = require('./SessionCookiePlugin');
  * @param {OkanjoServer} server
  * @param {*} [options]
  * @param {*} [cache]
- * @param [callback]
  * @return {Promise<any>}
  */
-exports.register = (server, options, cache, callback) => {
+exports.register = (server, options, cache) => {
     return new Promise((resolve, reject) => {
 
         // Take the cache however you want to give it
@@ -21,7 +20,6 @@ exports.register = (server, options, cache, callback) => {
         }
 
         const done = () => {
-            if (callback) callback();
             resolve();
         };
 
@@ -30,11 +28,12 @@ exports.register = (server, options, cache, callback) => {
             plugin: exports.SessionCookiePlugin,
             options,
         })
-            .then(() => done())
-            .catch(err => {
-                if (callback) callback(err);
-                return reject(err);
-            })
+            .then(
+                () => done(),
+                err => {
+                    return reject(err);
+                }
+            )
         ;
     });
 };

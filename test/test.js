@@ -6,7 +6,7 @@ const OkanjoServerSessionPlugin = require('../SessionPlugin');
 const Joi = require('joi');
 const Needle = require('needle');
 const should = require('should');
-const Boom = require('boom');
+const Boom = require('@hapi/boom');
 const Util = require('util');
 
 describe('Session Module', function() {
@@ -89,9 +89,9 @@ describe('Session Module', function() {
                 auth: { mode: 'try', strategies: ['session'] },
                 plugins: { 'okanjo-session-cookie': { redirectTo: false } },
                 validate: {
-                    query: {
+                    query: Joi.object({
                         next: Joi.string().optional()
-                    }
+                    })
                 }
             }
         });
@@ -135,9 +135,9 @@ describe('Session Module', function() {
                 auth: { mode: 'try', strategies: ['session'] },
                 plugins: { 'okanjo-session-cookie': { redirectTo: false } },
                 validate: {
-                    query: {
+                    query: Joi.object({
                         next: Joi.string().optional()
-                    }
+                    })
                 }
             }
         });
@@ -229,7 +229,7 @@ describe('Session Module', function() {
             await OkanjoServerSessionPlugin.register(server, null, null);
         });
 
-        it('should register', (done) => {
+        it('should register', async () => {
             // Register the plugin (these options emulate the old v1 policy defaults)
             const options = {
                 isSecure: false,
@@ -238,15 +238,12 @@ describe('Session Module', function() {
                 keepAlive: true
             };
             // noinspection JSIgnoredPromiseFromCall
-            OkanjoServerSessionPlugin.register(server, options, null, (err) => {
-                should(err).not.be.ok();
+            await OkanjoServerSessionPlugin.register(server, options, null);
 
-                bindRoutes(server);
+            bindRoutes(server);
 
-                server.start().then(() => {
-                    routeBase = 'http://localhost:' + server.hapi.info.port;
-                    done();
-                });
+            await server.start().then(() => {
+                routeBase = 'http://localhost:' + server.hapi.info.port;
             });
         });
 
@@ -688,18 +685,6 @@ describe('Session Module', function() {
 
     describe('SessionPlugin', () => {
 
-        it('can handle config errors in callback mode', (done) => {
-            const app = new OkanjoApp({});
-            const server = new OkanjoWebServer(app, {});
-            server.init().then(() => {
-                OkanjoServerSessionPlugin.register(server, {bogus: true}, null, (err) => {
-                    should(err).be.ok();
-                    err.name.should.match(/ValidationError/);
-                    done();
-                });
-            });
-        });
-
         it('can handle config errors in promise mode', async () => {
             const app = new OkanjoApp({});
             const server = new OkanjoWebServer(app, {});
@@ -838,7 +823,7 @@ describe('Session Module', function() {
             const server = new OkanjoWebServer(app, {});
             await server.init();
 
-            await server.hapi.cache.provision({ provider: require('catbox-memory'), name: 'custom_session_cache' });
+            await server.hapi.cache.provision({ provider: require('@hapi/catbox-memory'), name: 'custom_session_cache' });
             const cache = server.hapi.cache({
                 cache: 'custom_session_cache',
                 segment: 'sessions',
@@ -866,7 +851,7 @@ describe('Session Module', function() {
             const server = new OkanjoWebServer(app, {});
             await server.init();
 
-            await server.hapi.cache.provision({ provider: require('catbox-memory'), name: 'custom_session_cache' });
+            await server.hapi.cache.provision({ provider: require('@hapi/catbox-memory'), name: 'custom_session_cache' });
             const cache = server.hapi.cache({
                 cache: 'custom_session_cache',
                 segment: 'sessions',
@@ -932,9 +917,9 @@ describe('Session Module', function() {
                     auth: { mode: 'try', strategies: ['session'] },
                     plugins: { 'okanjo-session-cookie': { redirectTo: false } },
                     validate: {
-                        query: {
+                        query: Joi.object({
                             next: Joi.string().optional()
-                        }
+                        })
                     }
                 }
             });
@@ -974,7 +959,7 @@ describe('Session Module', function() {
             const server = new OkanjoWebServer(app, {});
             await server.init();
 
-            await server.hapi.cache.provision({ provider: require('catbox-memory'), name: 'custom_session_cache' });
+            await server.hapi.cache.provision({ provider: require('@hapi/catbox-memory'), name: 'custom_session_cache' });
             const cache = server.hapi.cache({
                 cache: 'custom_session_cache',
                 segment: 'sessions',
@@ -1042,9 +1027,9 @@ describe('Session Module', function() {
                     auth: { mode: 'try', strategies: ['session'] },
                     plugins: { 'okanjo-session-cookie': { redirectTo: false } },
                     validate: {
-                        query: {
+                        query: Joi.object({
                             next: Joi.string().optional()
-                        }
+                        })
                     }
                 }
             });
@@ -1141,9 +1126,9 @@ describe('Session Module', function() {
                     auth: { mode: 'try', strategies: ['session'] },
                     plugins: { 'okanjo-session-cookie': { redirectTo: false } },
                     validate: {
-                        query: {
+                        query: Joi.object({
                             next: Joi.string().optional()
-                        }
+                        })
                     }
                 }
             });
