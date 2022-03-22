@@ -1,6 +1,6 @@
 # Okanjo Server Session Plugin  
 
-[![Build Status](https://travis-ci.org/Okanjo/okanjo-app-server-session.svg?branch=master)](https://travis-ci.org/Okanjo/okanjo-app-server-session) [![Coverage Status](https://coveralls.io/repos/github/Okanjo/okanjo-app-server-session/badge.svg?branch=master)](https://coveralls.io/github/Okanjo/okanjo-app-server-session?branch=master)
+[![Node.js CI](https://github.com/Okanjo/okanjo-app-server-session/actions/workflows/node.js.yml/badge.svg)](https://github.com/Okanjo/okanjo-app-server-session/actions/workflows/node.js.yml) [![Coverage Status](https://coveralls.io/repos/github/Okanjo/okanjo-app-server-session/badge.svg?branch=master)](https://coveralls.io/github/Okanjo/okanjo-app-server-session?branch=master)
 
 Plugin to enable cross-server, persistent session state storage.
 
@@ -24,6 +24,10 @@ Note: requires
 
 
 ## Breaking Changes
+
+### Version 3.1.0
+ * Supports Node 16
+ * Updated all dependencies to latest
 
 ### Version 2.0.0
  * Supports Hapi v17 and up. 

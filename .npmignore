@@ -7,3 +7,4 @@ docs
 .eslintignore
 .eslintrc.json
 .travis.yml
+.github
